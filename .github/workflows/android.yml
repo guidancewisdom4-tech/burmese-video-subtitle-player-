@@ -1,0 +1,46 @@
+name: Build Debug APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ "main", "master" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Unpack project zip if present
+        run: |
+          ZIP_FILE=$(find . -maxdepth 2 -name "*.zip" | head -n 1)
+          if [ -n "$ZIP_FILE" ]; then
+            unzip -q "$ZIP_FILE" -d extracted_src
+            if [ -d "extracted_src/burmese-video-subtitle-player" ]; then
+              cp -rn extracted_src/burmese-video-subtitle-player/. .
+            elif [ -d "extracted_src" ]; then
+              cp -rn extracted_src/. .
+            fi
+            rm -rf extracted_src
+          fi
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Build Debug APK
+        run: ./gradlew assembleDebug
+
+      - name: Upload Debug APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: burmese-video-subtitle-player-apk
+          path: app/build/outputs/apk/debug/app-debug.apk
+          
